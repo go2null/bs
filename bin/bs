@@ -1,14 +1,23 @@
-#!/bin/bash
+#!/bin/sh
 
-if [[ -f .env ]]; then
-  eval "$(awk '/^[A-Z]/ { print "export " $0 }' .env)"
+bs_function() {
+  if [ -f '.env' ]; then
+    # export `.env`.
+    # NOTE: per design not safe, as env vars are set based on output of
+    #       arbitrary commands defined in `.env`.
+    eval "$(sed -n 's|^[ \t]*[A-Za-z_][A-Za-z0-9_]*=|export &|p' '.env')"
 
-
-  if [[ $# -gt 0 ]]; then
-    "$@"
-  elif [[ -z $PS2 ]]; then
-    $SHELL
+    if [ $# -gt 0 ]; then
+      # execute command
+      "$@"
+    elif [ -z "$PS2" ]; then
+      # drop to a subshell when not in a command nor being sourced
+      $SHELL
+    fi
+  else
+    echo 'No .env file found. Aborting.' >&2
+    return 1
   fi
-else
-  echo "No .env file found. Aborting." >&2
-fi
+}
+
+bs_function "$@"
